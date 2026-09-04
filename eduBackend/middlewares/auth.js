@@ -7,9 +7,10 @@ require('dotenv').config();
 
 exports.auth = async (req, res, next) =>{
     try{
-        //extract token
-
-        const token = req.header('Authorisation').replace("Bearer","");
+        const authorization = req.header('Authorization') || req.header('Authorisation');
+        const token = authorization && authorization.startsWith('Bearer ')
+            ? authorization.slice(7)
+            : req.cookies?.token;
 
         if(!token){
             return res.status(401).json({
@@ -20,7 +21,7 @@ exports.auth = async (req, res, next) =>{
         // Verify
 
         try{
-            const decode = jwt.verify(token, process.env.SECRET_KEY);
+            const decode = jwt.verify(token, process.env.JWT_SECRET || process.env.SECRET_KEY);
             req.user = decode;
         }catch(error){
 

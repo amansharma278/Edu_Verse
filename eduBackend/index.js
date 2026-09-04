@@ -1,9 +1,17 @@
 const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
 
+const cookieParser = require('cookie-parser');
 const app = express();
 
-const PORT = require('dotenv').config() || 8000;
+const PORT = process.env.PORT || 8000;
 
+app.use(cors({
+    origin: true,
+    credentials: true,
+}));
+app.use(cookieParser());
 app.use(express.json());
 
 app.get('/',(req,res) => {
@@ -13,7 +21,9 @@ app.get('/',(req,res) => {
 require('./config/db').dbConnect();
 
 const user = require('./routes/user_routes')
+const courseRoutes = require('./routes/course_routes')
 app.use('/api/v1', user)
+app.use('/api/v1', courseRoutes)
 
 app.listen(PORT, () =>{
     console.log(`Server successfully started at PORT NO: ${PORT}`)

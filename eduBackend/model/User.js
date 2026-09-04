@@ -17,13 +17,16 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    phone_no: {
+        type: String,
+    },
     image:{
         type:String
     },
     token:{
         type:String,
     },
-    restPasswordExpires:{
+restPasswordExpires:{
         type: Date,
     },
     courses: [
@@ -42,7 +45,7 @@ const UserSchema = new mongoose.Schema({
     accountType: {
         type: String,
         required: true,
-        enum: ['Student', 'admin', 'instructor']
+        enum: ['Student', 'Instructor', 'Admin']
     },
     additionDetails: {
         type: mongoose.Schema.Types.ObjectId,
