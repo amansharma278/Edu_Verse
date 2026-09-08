@@ -38,7 +38,7 @@ export function Login() {
       
       navigate(from || defaultPath, { replace: true });
     } catch (err) {
-      setError("Failed to log in. Please check your credentials.");
+      setError(err instanceof Error ? err.message : "Failed to log in. Please check your credentials.");
     } finally {
       setIsLoading(false);
     }

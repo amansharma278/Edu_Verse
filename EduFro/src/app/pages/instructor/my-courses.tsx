@@ -1,24 +1,83 @@
 import { Link } from "react-router";
+import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash2, Eye, PlusCircle } from "lucide-react";
+import { useAuth } from "../../contexts/auth-context";
 
-const courses = [
-  { id: "1", title: "Complete Web Development Bootcamp 2026", students: 45230, revenue: "$12,450", status: "Published", rating: 4.8 },
-  { id: "2", title: "Python Programming Masterclass", students: 32145, revenue: "$9,230", status: "Published", rating: 4.9 },
-  { id: "3", title: "Data Science & Machine Learning", students: 28543, revenue: "$8,120", status: "Published", rating: 4.7 },
-  { id: "4", title: "React Advanced Patterns", students: 0, revenue: "$0", status: "Draft", rating: 0 },
-];
+interface BackendCourse {
+  _id: string;
+  courseName: string;
+  price?: number;
+  studentEnrolled?: string;
+  ratingReview?: Array<{ rating?: number }>;
+}
+
+interface CourseRow {
+  id: string;
+  title: string;
+  students: number;
+  revenue: string;
+  status: "Published" | "Draft";
+  rating: number;
+}
 
 export function InstructorCourses() {
+  const { user } = useAuth();
+  const [courses, setCourses] = useState<CourseRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api/v1";
+        const token = localStorage.getItem("eduverse-token");
+        const response = await fetch(`${apiUrl}/course/instructor`, {
+          credentials: "include",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Unable to load courses");
+
+        setCourses((data.courses as BackendCourse[]).map((course) => {
+          const ratings = (course.ratingReview || [])
+            .map((review) => review.rating || 0)
+            .filter((rating) => rating > 0);
+          const averageRating = ratings.length
+            ? ratings.reduce((total, rating) => total + rating, 0) / ratings.length
+            : 0;
+
+          return {
+            id: course._id,
+            title: course.courseName,
+            students: course.studentEnrolled ? 1 : 0,
+            revenue: `$${(course.price || 0).toLocaleString()}`,
+            status: "Published",
+            rating: averageRating,
+          };
+        }));
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : "Unable to load courses");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) loadCourses();
+    else setIsLoading(false);
+  }, [user?.id]);
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-2">My Courses</h1>
+
+      {error && <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">{error}</p>}
           <p className="text-muted-foreground">Manage your course content and performance</p>
         </div>
         <Link to="/instructor/add-course">
@@ -42,7 +101,17 @@ export function InstructorCourses() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {courses.map((course) => (
+            {isLoading && (
+              <TableRow>
+                <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">Loading courses...</TableCell>
+              </TableRow>
+            )}
+            {!isLoading && !error && courses.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">No courses created yet.</TableCell>
+              </TableRow>
+            )}
+            {!isLoading && courses.map((course) => (
               <TableRow key={course.id}>
                 <TableCell className="font-medium">{course.title}</TableCell>
                 <TableCell>{course.students.toLocaleString()}</TableCell>

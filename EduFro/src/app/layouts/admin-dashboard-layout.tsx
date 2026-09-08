@@ -25,6 +25,7 @@ import {
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger } from "../components/ui/sheet";
 import { SheetTitle, SheetDescription } from "../components/ui/sheet";
+import { useAuth } from "../contexts/auth-context";
 
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -77,6 +78,7 @@ function Sidebar() {
 
 export function AdminDashboardLayout() {
   const { theme, setTheme } = useTheme();
+  const { logout } = useAuth();
 
   return (
     <div className="h-screen flex">
@@ -144,7 +146,7 @@ export function AdminDashboardLayout() {
                     Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={logout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Log out
                   </DropdownMenuItem>
