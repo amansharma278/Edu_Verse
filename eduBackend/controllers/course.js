@@ -149,6 +149,90 @@ exports.getInstructorCourses = async (req, res) => {
     }
 };
 
+exports.getCourseForEdit = async (req, res) => {
+    try {
+        const course = await Course.findOne({ _id: req.params.courseId, instructor: req.user.id }).populate("tag");
+
+        if (!course) {
+            return res.status(404).json({ success: false, message: "Course not found" });
+        }
+
+        return res.status(200).json({ success: true, course });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Error while fetching course",
+            error: error.message,
+        });
+    }
+};
+
+exports.updateCourse = async (req, res) => {
+    try {
+        const { courseName, courseDescription, price, thumbnail, tag } = req.body;
+        const course = await Course.findOne({ _id: req.params.courseId, instructor: req.user.id });
+
+        if (!course) {
+            return res.status(404).json({ success: false, message: "Course not found" });
+        }
+
+        if (courseName !== undefined) course.courseName = courseName;
+        if (courseDescription !== undefined) course.courseDescription = courseDescription;
+        if (price !== undefined) course.price = Number(price) || 0;
+        if (thumbnail !== undefined) course.thumbnail = thumbnail;
+
+        if (tag !== undefined) {
+            const tagItems = Array.isArray(tag) ? tag : [tag];
+            const tagIds = [];
+            for (const item of tagItems) {
+                if (!item) continue;
+                let existingTag = mongoose.isValidObjectId(item) ? await Tag.findById(item) : await Tag.findOne({ name: item });
+                if (!existingTag) existingTag = await Tag.create({ name: item });
+                tagIds.push(existingTag._id);
+            }
+            course.tag = tagIds;
+        }
+
+        await course.save();
+        return res.status(200).json({ success: true, message: "Course updated successfully", course });
+    } catch (error) {
+        console.log("Error while updating course", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error while updating course",
+            error: error.message,
+        });
+    }
+};
+
+exports.deleteCourse = async (req, res) => {
+    try {
+        const { courseId } = req.params;
+        const course = await Course.findOne({ _id: courseId, instructor: req.user.id });
+
+        if (!course) {
+            return res.status(404).json({
+                success: false,
+                message: "Course not found or you are not allowed to delete it",
+            });
+        }
+
+        await Course.findByIdAndDelete(courseId);
+
+        return res.status(200).json({
+            success: true,
+            message: "Course deleted successfully",
+        });
+    } catch (error) {
+        console.log("Error while deleting course", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error while deleting course",
+            error: error.message,
+        });
+    }
+};
+
 exports.createRatingReview = async (req, res) => {
     try {
         const { courseId } = req.params;

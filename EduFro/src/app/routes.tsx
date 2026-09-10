@@ -77,6 +77,7 @@ export const router = createBrowserRouter([
       { index: true, element: <InstructorDashboard /> },
       { path: "my-courses", element: <InstructorCourses /> },
       { path: "add-course", element: <AddCourse /> },
+      { path: "edit-course/:courseId", element: <AddCourse /> },
       { path: "analytics", element: <InstructorAnalytics /> },
       { path: "reviews", element: <InstructorReviews /> },
       { path: "profile", element: <InstructorProfile /> },

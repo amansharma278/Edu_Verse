@@ -214,6 +214,13 @@ exports.login = async (req, res) => {
             });
         }
 
+        if (user.isActive === false) {
+            return res.status(403).json({
+                success: false,
+                message: "Your account is suspended",
+            });
+        }
+
         if (await bcrypt.compare(password, user.password)) {
             const payload = {
                 id: user._id,

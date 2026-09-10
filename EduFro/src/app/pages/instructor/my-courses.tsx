@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
@@ -6,6 +6,7 @@ import { Badge } from "../../components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash2, Eye, PlusCircle } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "../../contexts/auth-context";
 
 interface BackendCourse {
@@ -27,9 +28,35 @@ interface CourseRow {
 
 export function InstructorCourses() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
   const [error, setError] = useState("");
+
+  const deleteCourse = async (courseId: string) => {
+    if (!window.confirm("Are you sure you want to delete this course?")) return;
+
+    setDeletingCourseId(courseId);
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api/v1";
+      const token = localStorage.getItem("eduverse-token");
+      const response = await fetch(`${apiUrl}/course/${courseId}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Unable to delete course");
+
+      setCourses((current) => current.filter((course) => course.id !== courseId));
+      toast.success("Course deleted successfully");
+    } catch (deleteError) {
+      toast.error(deleteError instanceof Error ? deleteError.message : "Unable to delete course");
+    } finally {
+      setDeletingCourseId(null);
+    }
+  };
 
   useEffect(() => {
     const loadCourses = async () => {
@@ -130,17 +157,21 @@ export function InstructorCourses() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate(`/courses/${course.id}`)}>
                         <Eye className="mr-2 h-4 w-4" />
                         View
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate(`/instructor/edit-course/${course.id}`)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => deleteCourse(course.id)}
+                        disabled={deletingCourseId === course.id}
+                      >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
+                        {deletingCourseId === course.id ? "Deleting..." : "Delete"}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

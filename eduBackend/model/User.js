@@ -47,6 +47,10 @@ restPasswordExpires:{
         required: true,
         enum: ['Student', 'Instructor', 'Admin']
     },
+    isActive: {
+        type: Boolean,
+        default: true,
+    },
     additionDetails: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Profile'

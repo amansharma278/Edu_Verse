@@ -22,6 +22,13 @@ exports.auth = async (req, res, next) =>{
 
         try{
             const decode = jwt.verify(token, process.env.JWT_SECRET || process.env.SECRET_KEY);
+            const user = await User.findById(decode.id).select("isActive");
+            if (!user || user.isActive === false) {
+                return res.status(403).json({
+                    success: false,
+                    message: "Your account is suspended or unavailable",
+                });
+            }
             req.user = decode;
         }catch(error){
 

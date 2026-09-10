@@ -1,6 +1,16 @@
 const mongoose = require('mongoose');
+const dns = require('node:dns');
 
 require('dotenv').config();
+
+const dnsServers = process.env.DNS_SERVERS
+    ?.split(',')
+    .map((server) => server.trim())
+    .filter(Boolean);
+
+if (dnsServers?.length) {
+    dns.setServers(dnsServers);
+}
 
 exports.dbConnect=async( req, res)=>{
     mongoose.connect(process.env.MONGODB_URL)

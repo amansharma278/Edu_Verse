@@ -1,11 +1,13 @@
-import { ChangeEvent, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { useParams } from "react-router";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { Card } from "../../components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
-import { Upload, Plus, X } from "lucide-react";
+import { Loader2, Upload, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "../../contexts/auth-context";
 
 interface Lecture {
@@ -35,8 +37,37 @@ export function AddCourse() {
   const [error, setError] = useState("");
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
+  const { courseId } = useParams<{ courseId: string }>();
+  const isEditing = Boolean(courseId);
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api/v1";
+
+  useEffect(() => {
+    if (!courseId) return;
+
+    const loadCourse = async () => {
+      try {
+        const token = localStorage.getItem("eduverse-token");
+        const response = await fetch(`${apiUrl}/course/${courseId}`, {
+          credentials: "include",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Unable to load course");
+
+        const course = data.course;
+        setCourseName(course.courseName || "");
+        setCourseDescription(course.courseDescription || "");
+        setPrice(course.price?.toString() || "");
+        setThumbnail(course.thumbnail || null);
+        setCategory(course.tag?.[0]?.name || course.tag?.[0] || "");
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : "Unable to load course");
+      }
+    };
+
+    loadCourse();
+  }, [apiUrl, courseId]);
 
   const readFileAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -140,8 +171,8 @@ export function AddCourse() {
     try {
       const thumbnailUrl = thumbnail.startsWith("data:") ? await uploadMedia(thumbnail, "image") : thumbnail;
       const token = localStorage.getItem("eduverse-token");
-      const response = await fetch(`${apiUrl}/course`, {
-        method: "POST",
+      const response = await fetch(`${apiUrl}/course${courseId ? `/${courseId}` : ""}`, {
+        method: courseId ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -164,7 +195,7 @@ export function AddCourse() {
       if (!response.ok) throw new Error(data.message || "Course creation failed");
       setStep(1);
       setError("");
-      alert("Course published successfully");
+      toast.success(courseId ? "Course updated successfully" : "Course published successfully");
     } catch (publishError) {
       setError(publishError instanceof Error ? publishError.message : "Course creation failed");
     } finally {
@@ -175,7 +206,7 @@ export function AddCourse() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Create New Course</h1>
+        <h1 className="text-3xl font-bold mb-2">{isEditing ? "Edit Course" : "Create New Course"}</h1>
         <p className="text-muted-foreground">Share your knowledge with students worldwide</p>
       </div>
 
@@ -328,7 +359,8 @@ export function AddCourse() {
             <div className="flex gap-4">
               <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
               <Button onClick={publishCourse} disabled={isPublishing} className="bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] hover:opacity-90 flex-1">
-                {isPublishing ? "Publishing..." : "Publish Course"}
+                {isPublishing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isPublishing ? (isEditing ? "Updating..." : "Publishing...") : (isEditing ? "Update Course" : "Publish Course")}
               </Button>
             </div>
           </div>
